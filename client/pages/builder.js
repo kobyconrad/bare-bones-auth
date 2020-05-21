@@ -6,6 +6,7 @@ function whoami() {
     headers: {
       "Content-Type": "application/json",
     },
+    credentials: "include",
   });
 }
 

@@ -6,7 +6,7 @@ const cookieParser = require("cookie-parser");
 
 const app = express();
 app.use(cookieParser());
-app.use(cors());
+app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
 app.use(express.json());
 
 const port = 3001;
@@ -14,6 +14,15 @@ const port = 3001;
 // Fake database
 const users = {};
 const sessions = {};
+
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  domain: "localhost",
+  secure: false,
+  path: "/",
+  // 30 days
+  expires: new Date(Date.now() + 60 * 60 * 24 * 1000 * 30),
+};
 
 app.post("/register", (req, res) => {
   const username = req.body.username;
@@ -29,11 +38,7 @@ app.post("/register", (req, res) => {
   };
 
   // Creating a cookie
-  res.cookie("session-token", token, {
-    httpOnly: true,
-    domain: "localhost:3000",
-    secure: false,
-  });
+  res.cookie("session-token", token, COOKIE_OPTIONS);
 
   res.status(200).send("ok");
 });
@@ -60,11 +65,7 @@ app.post("/login", (req, res) => {
   };
 
   // Creating a cookie
-  res.cookie("session-token", token, {
-    httpOnly: true,
-    domain: "localhost:3000",
-    secure: false,
-  });
+  res.cookie("session-token", token, COOKIE_OPTIONS);
 
   res.status(200).send("ok");
 });
