@@ -1,8 +1,27 @@
+// import DbContext from "./db/DbConfig";
+// require("dotenv").config();
+// require = require("esm")(module);
+// module.exports = require("./db/DbConfig")
 const express = require("express");
 const bcrypt = require("bcrypt");
 const { nanoid } = require("nanoid");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const MongoClient = require("mongodb").MongoClient
+
+const connectionString = "mongodb+srv://juamster:Kq7baj7l@cluster0-ef91t.mongodb.net/kanban?retryWrites=true&w=majority"
+
+
+
+
+MongoClient.connect(connectionString, {
+  useUnifiedTopology: true
+}, (err, client) => {
+  if (err) return console.error(err)
+  console.log("We connected to the Database")
+}).then((client) => {
+  console.log("hello")
+})
 
 const app = express();
 app.use(cookieParser());
@@ -29,10 +48,12 @@ app.post("/register", (req, res) => {
   const password = req.body.password;
 
   const hash = bcrypt.hashSync(password, 10);
+  // TODO: save this to database instead of fake database
   users[username] = hash;
 
   // Creating session
   const token = nanoid();
+  // TODO: save session token to database instead of fake database 
   sessions[token] = {
     username,
   };
@@ -48,18 +69,21 @@ app.post("/login", (req, res) => {
   const password = req.body.password;
 
   if (!users[username]) {
-    res.status(401).send("unauthorized");
+    res.status(401).send("User doesn't exist");
   }
 
   // Checking password
+  // TODO: get hashed password from users record
   const hash = users[username];
+
   const isCorrectPassword = bcrypt.compareSync(password, hash);
   if (!isCorrectPassword) {
-    res.status(401).send("unauthorized");
+    res.status(401).send("wrong password");
   }
 
   // Creating session
   const token = nanoid();
+  // TODO: save sessions[token] to database
   sessions[token] = {
     username,
   };
@@ -73,6 +97,7 @@ app.post("/login", (req, res) => {
 app.get("/user-info", (req, res) => {
   // Someone isn't logged in
   const token = req.cookies["session-token"];
+  // TODO: grab sessions[token] from database
   const session = sessions[token];
   if (!session) {
     return res.status(401).send("unauthorized");
@@ -87,6 +112,10 @@ app.get("/user-info", (req, res) => {
 });
 
 app.get("/", (req, res) => res.send("Hello World!"));
+
+
+// DbContext.connect();
+
 app.listen(port, () =>
   console.log(`Example app listening at http://localhost:${port}`)
 );
