@@ -36,17 +36,6 @@ try {
     "Invalid connection string"
   );
 }
-// const profile = mongoose.model("Profile", ProfileSchema)
-
-
-// MongoClient.connect(connectionString, {
-//   useUnifiedTopology: true
-// }, (err, client) => {
-//   if (err) return console.error(err)
-//   console.log("We connected to the Database")
-// }).then((client) => {
-//   console.log("hello")
-// })
 
 const app = express();
 app.use(cookieParser());
