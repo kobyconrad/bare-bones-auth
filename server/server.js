@@ -1,7 +1,19 @@
-// import DbContext from "./db/DbConfig";
-// require("dotenv").config();
-// require = require("esm")(module);
-// module.exports = require("./db/DbConfig")
+require("dotenv").config();
+require = require("esm")(module);
+
+const mongoose = require("mongoose");
+
+mongoose.set("useNewUrlParser", true);
+mongoose.set("useFindAndModify", false);
+mongoose.set("useCreateIndex", true);
+mongoose.set("useUnifiedTopology", true);
+mongoose.connection.on("error", err => {
+  console.error("[DATABASE ERROR]:", err);
+});
+mongoose.connection.on("connection", () => {
+  console.log("DbConnection Successful");
+});
+
 const express = require("express");
 const bcrypt = require("bcrypt");
 const { nanoid } = require("nanoid");
@@ -9,19 +21,32 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const MongoClient = require("mongodb").MongoClient
 
-const connectionString = "mongodb+srv://juamster:Kq7baj7l@cluster0-ef91t.mongodb.net/kanban?retryWrites=true&w=majority"
+const connectionString = "mongodb+srv://juamster:Kq7baj7l@cluster0-ef91t.mongodb.net/sjh?retryWrites=true&w=majority"
+
+// Connecting to database
+mongoose.connect(connectionString)
+let status = 0;
+try {
+  let status = mongoose.connect(connectionString, { useUnifiedTopology: true });
+  console.log("[CONNECTION TO DB SUCCESSFUL]");
+
+} catch (e) {
+  console.error(
+    "[MONGOOSE CONNECTION ERROR]:",
+    "Invalid connection string"
+  );
+}
+// const profile = mongoose.model("Profile", ProfileSchema)
 
 
-
-
-MongoClient.connect(connectionString, {
-  useUnifiedTopology: true
-}, (err, client) => {
-  if (err) return console.error(err)
-  console.log("We connected to the Database")
-}).then((client) => {
-  console.log("hello")
-})
+// MongoClient.connect(connectionString, {
+//   useUnifiedTopology: true
+// }, (err, client) => {
+//   if (err) return console.error(err)
+//   console.log("We connected to the Database")
+// }).then((client) => {
+//   console.log("hello")
+// })
 
 const app = express();
 app.use(cookieParser());
@@ -43,6 +68,22 @@ const COOKIE_OPTIONS = {
   expires: new Date(Date.now() + 60 * 60 * 24 * 1000 * 30),
 };
 
+// TODO: this code should go into another file 
+
+const Schema = mongoose.Schema;
+
+const ProfileSchema = new Schema(
+  {
+    hashPassword: { type: String, lowercase: true },
+    username: { type: String, required: true },
+    _queryable: { type: Boolean, default: true }
+    // NOTE If you wish to add additional public properties for profiles do so here
+  },
+  { timestamps: true, toJSON: { virtuals: true } }
+);
+
+const Profile = mongoose.model("Profile", ProfileSchema)
+
 app.post("/register", (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
@@ -54,6 +95,8 @@ app.post("/register", (req, res) => {
   // Creating session
   const token = nanoid();
   // TODO: save session token to database instead of fake database 
+  let data = { "hashPassword": password, "username": username }
+  Profile.create(data)
   sessions[token] = {
     username,
   };
@@ -90,7 +133,6 @@ app.post("/login", (req, res) => {
 
   // Creating a cookie
   res.cookie("session-token", token, COOKIE_OPTIONS);
-
   res.status(200).send("ok");
 });
 
