@@ -19,7 +19,7 @@ const bcrypt = require("bcrypt");
 const { nanoid } = require("nanoid");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const MongoClient = require("mongodb").MongoClient
+//const MongoClient = require("mongodb").MongoClient
 
 const connectionString = "mongodb+srv://juamster:Kq7baj7l@cluster0-ef91t.mongodb.net/sjh?retryWrites=true&w=majority"
 
@@ -72,17 +72,30 @@ const COOKIE_OPTIONS = {
 
 const Schema = mongoose.Schema;
 
-const ProfileSchema = new Schema(
+let ProfileSchema = new Schema(
   {
+    subs: [{ type: String, unique: false, required: false }],
     hashPassword: { type: String, lowercase: true },
     username: { type: String, required: true },
+    email: { type: String, unique: false },
     _queryable: { type: Boolean, default: true }
     // NOTE If you wish to add additional public properties for profiles do so here
   },
   { timestamps: true, toJSON: { virtuals: true } }
 );
 
-const Profile = mongoose.model("Profile", ProfileSchema)
+let Profile = mongoose.model("Profile", ProfileSchema)
+
+let SessionSchema = new Schema(
+  {
+    token: { type: String, lowercase: true },
+    username: { type: String, required: true },
+    _queryable: { type: Boolean, default: true }
+
+  },
+  { timestamps: true, toJSON: { virtuals: true } }
+);
+let Session = mongoose.model("Session", SessionSchema)
 
 app.post("/register", (req, res) => {
   const username = req.body.username;
@@ -91,12 +104,28 @@ app.post("/register", (req, res) => {
   const hash = bcrypt.hashSync(password, 10);
   // TODO: save this to database instead of fake database
   users[username] = hash;
+  let data = {
+    "subs": `${Math.random()}`,
+    "hashPassword": hash,
+    "username": req.body.username
+  }
+  Profile.create(data).catch((err) => {
+    if (err) throw console.error(err)
+  })
 
   // Creating session
   const token = nanoid();
   // TODO: save session token to database instead of fake database 
-  let data = { "hashPassword": password, "username": username }
-  Profile.create(data)
+
+  let tokenData = {
+    "username": req.body.username,
+    "token": token
+  }
+
+  Session.create(tokenData).catch((err) => {
+    if (err) throw console.error(err)
+  })
+
   sessions[token] = {
     username,
   };
@@ -139,19 +168,31 @@ app.post("/login", (req, res) => {
 app.get("/user-info", (req, res) => {
   // Someone isn't logged in
   const token = req.cookies["session-token"];
-  // TODO: grab sessions[token] from database
-  const session = sessions[token];
-  if (!session) {
-    return res.status(401).send("unauthorized");
-  }
 
-  // Their particular userinfo
-  const username = session.username;
+  // grab sessions[token] from database
+  Session.findOne({ "token": token }, function (err, session) {
+    if (err) throw console.error(err)
 
-  res.status(200).json({
-    username,
-  });
+    if (!session) {
+      return res.status(401).send("unauthorized");
+    }
+
+    // Their particular userinfo
+    // @ts-ignore
+    const username = session.username;
+
+    res.status(200).json({
+      username,
+    });
+  })
+
+
 });
+
+function getOne(aToken) {
+  let retData = Session.findOne({ token: aToken })
+  return retData
+}
 
 app.get("/", (req, res) => res.send("Hello World!"));
 
