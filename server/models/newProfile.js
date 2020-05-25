@@ -1,16 +1,14 @@
 import mongoose from "mongoose";
 const Schema = mongoose.Schema;
 
-const Profile = new Schema(
+export const newProfile = new Schema(
   {
-    subs: [{ type: String, unique: false, required: false }],
-    hashPassword: { type: String, lowercase: true },
-    username: { type: String, required: true },
-    email: { type: String, unique: false },
+    // email: { type: String, lowercase: true, unique: true },
+    username: { type: String, lowercase: true, unique: true },
+    password: { type: String, required: true },
     _queryable: { type: Boolean, default: true }
     // NOTE If you wish to add additional public properties for profiles do so here
   },
   { timestamps: true, toJSON: { virtuals: true } }
 );
-
-export default Profile;
+// export default newProfile;

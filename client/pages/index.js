@@ -1,4 +1,5 @@
 import UserPassForm from "../components/UserPassForm";
+import LoginForm from "../components/LoginForm";
 import { useRouter } from "next/router";
 
 function register(username, password) {
@@ -15,7 +16,7 @@ function register(username, password) {
   });
 }
 
-function login() {
+function login(username, password) {
   return fetch("http://localhost:3001/login", {
     method: "post",
     headers: {
@@ -32,8 +33,18 @@ function login() {
 export default function Home() {
   const router = useRouter();
 
-  async function onSubmit(username, password) {
+  async function onRegister(username, password) {
     const result = await register(username, password);
+
+    if (result.status === 401) {
+      throw new Error("AHHH BAD GO AWAY");
+    }
+
+    router.push("/builder");
+  }
+
+  async function onLogin(username, password) {
+    const result = await login(username, password);
 
     if (result.status === 401) {
       throw new Error("AHHH BAD GO AWAY");
@@ -44,7 +55,9 @@ export default function Home() {
 
   return (
     <div>
-      <UserPassForm onSubmit={onSubmit} />
+      <UserPassForm onSubmit={onRegister} />
+      <hr />
+      <LoginForm onSubmit={onLogin} />
     </div>
   );
 }
