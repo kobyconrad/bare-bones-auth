@@ -1,8 +1,9 @@
 import { useEffect } from "react";
+import LogoutButton from '../components/logoutButton';
 
 function whoami() {
   return fetch("http://localhost:3001/user-info", {
-    method: "get",
+    method: "GET",
     headers: {
       "Content-Type": "application/json",
     },
@@ -25,6 +26,7 @@ export default () => {
   return (
     <div>
       <button onClick={load}>Load info</button>
+      <LogoutButton />
     </div>
   );
 };

@@ -27,9 +27,6 @@ const COOKIE_OPTIONS = {
   expires: new Date(Date.now() + 60 * 60 * 24 * 1000 * 30),
 };
 
-// TODO: this code should go into another file 
-
-
 
 // Connect to the database here
 database.connect();
@@ -45,7 +42,8 @@ app.post("/register", (req, res) => {
   let data = {
     "subs": `${Math.random()}`,
     "hashPassword": hash,
-    "username": req.body.username
+    "username": req.body.username,
+    "loggedIn": true
   }
 
   dbContext.Profile.create(data).catch((err) => {
@@ -84,57 +82,38 @@ app.post("/login", (req, res) => {
     if (err) throw console.error(err)
 
     if (!loginData) {
-      return res.status(401).send("unauthorized");
+      return res.status(401).send("User doesn't exist");
     }
 
     // @ts-ignore
     const hashPassword = loginData.hashPassword;
-    console.log("the stored password is: ", hashPassword)
-    console.log(password)
+
     const isCorrectPassword = bcrypt.compareSync(password, hashPassword);
 
-    //TODO:  Figure out why this isnt working
-    console.log(isCorrectPassword)
+
     if (!isCorrectPassword) {
-      console.log("wrong password")
-      // res.status(401).send("wrong password");
+      res.status(401).send("wrong password");
+      // res.end();
+    } else {
+      const token = nanoid();
+
+      const tokenData = {
+        "username": req.body.username,
+        "token": token,
+        "loggedIn": true
+      }
+
+      dbContext.Session.create(tokenData).catch((err) => {
+        if (err) throw console.error(err)
+      })
+      res.cookie("session-token", token, COOKIE_OPTIONS);
+
+      res.status(200).send("ok");
+
     }
-    console.log("good password")
-    // res.status(200).json({
-    //   username,
-    // });
-
   })
 
-  // if (!users[username]) {
-  //   res.status(401).send("User doesn't exist");
-  // }
 
-  // Checking password
-  // TODO: get hashed password from users record
-  // const hash = users[username];
-
-  // Creating session
-  const token = nanoid();
-  // TODO: save session token to database instead of fake database 
-
-  let tokenData = {
-    "username": req.body.username,
-    "token": token
-  }
-
-  dbContext.Session.create(tokenData).catch((err) => {
-    if (err) throw console.error(err)
-  })
-
-  sessions[token] = {
-    username,
-  };
-
-  // Creating a cookie
-  res.cookie("session-token", token, COOKIE_OPTIONS);
-
-  res.status(200).send("ok");
 });
 
 app.get("/user-info", (req, res) => {
@@ -143,9 +122,11 @@ app.get("/user-info", (req, res) => {
 
   // grab sessions[token] from database
   dbContext.Session.findOne({ "token": token }, function (err, session) {
+    console.log(session)
     if (err) throw console.error(err)
 
-    if (!session) {
+    // @ts-ignore
+    if (!session || !session.loggedIn) {
       return res.status(401).send("unauthorized");
     }
 
@@ -160,14 +141,30 @@ app.get("/user-info", (req, res) => {
 
 });
 
+app.get("/logout", (req, res) => {
+
+  const token = req.cookies['session-token'];
+
+  dbContext.Session.findOneAndUpdate({ "token": token }, { "loggedIn": false }, function (err, session) {
+    if (err) {
+      res.status(401);
+      throw console.error(err)
+    }
+    console.log(session);
+  })
+
+  res.clearCookie('session-token');
+  res.send('logout')
+  res.status(200)
+
+})
+
 function getOne(aToken) {
   let retData = dbContext.Session.findOne({ token: aToken })
   return retData
 }
 
 app.get("/", (req, res) => res.send("Hello World!"));
-
-
 
 app.listen(port, () =>
   console.log(`Example app listening at http://localhost:${port}`)
